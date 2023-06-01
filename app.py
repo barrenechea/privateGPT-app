@@ -20,6 +20,10 @@ persist_directory = os.environ.get('PERSIST_DIRECTORY')
 model_type = os.environ.get('MODEL_TYPE')
 model_path = os.environ.get('MODEL_PATH')
 model_n_ctx = os.environ.get('MODEL_N_CTX')
+target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
+n_gpu_layers = os.environ.get('N_GPU_LAYERS')
+use_mlock = os.environ.get('USE_MLOCK')
+n_batch = os.environ.get('N_BATCH') if os.environ.get('N_BATCH') != None else 512
 source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
 
 from constants import CHROMA_SETTINGS
@@ -105,12 +109,12 @@ async def query(query: str, collection_name:str):
     callbacks = [StreamingStdOutCallbackHandler()]
     match model_type:
         case "LlamaCpp":
-            llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, callbacks=callbacks, verbose=False)
+            llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, callbacks=callbacks, verbose=False,n_gpu_layers=n_gpu_layers, use_mlock=use_mlock,top_p=0.9, n_batch=n_batch)
         case "GPT4All":
             llm = GPT4All(model=model_path, n_ctx=model_n_ctx, backend='gptj', callbacks=callbacks, verbose=False)
         case _default:
             print(f"Model {model_type} not supported!")
-            exit;
+            exit()
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
     
     # Get the answer from the chain
